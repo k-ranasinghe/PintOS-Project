@@ -1,11 +1,25 @@
 # Overview
-Labs for undergraduate OS class (600.318) at Johns Hopkins. [Pintos](http://pintos-os.org) 
-is a teaching operating system for x86, challenging but not overwhelming, small
-but realistic enough to understand OS in depth (it can run x86 machine and simulators 
-including QEMU, Bochs and VMWare Player!). The main source code, documentation and assignments 
-are developed by Ben Pfaff and others from Stanford (refer to its [LICENSE](src/LICENSE)).
-
-The course instructor ([Ryan Huang](mailto:huang@cs.jhu.edu)) made some changes to the original
-Pintos labs to tailor for his class. The upstream for this branch comes from 
-[https://github.com/ryanphuang/PintosM](https://github.com/ryanphuang/PintosM). For students in the class, please
-download the release version for this branch at https://github.com/jhu-cs318/pintos.git
+[Pintos](http://pintos-os.org) is a teaching operating system for x86 architectures. It is a small
+operating system with all the basic functionalities of an OS developed by Stanford University.
+<br>
+This was an academic project done as part of the Semester 3 Operating Systems Module. As part of the 
+project Threads, User Programs were implemented in this environment. Also Semaphores and Locks were 
+implemented to handle concurrency issues.
+<br>
+In Lab 1 we implemented an interactive shell as shown below.
+<br>
+<br>
+![image](https://github.com/user-attachments/assets/1e3546d2-70be-44af-b23c-16af361c4af8)
+<br>
+![image](https://github.com/user-attachments/assets/68e8591e-dd38-4c24-b36b-800f6547e25c)
+<br>
+<br>
+<br>
+In Lab 2 we implemented User Programs. For this we had to develop arguement passing, system calls, 
+process scheduling and memory layout of the OS. To check the quality of the improvements made a set
+of automated tests were run as shown below.
+<br>
+<br>
+![Screenshot 2023-10-25 215157](https://github.com/user-attachments/assets/1b856be4-9fe4-4952-8a87-70991ab00824)
+<br>
+![Screenshot 2023-10-25 215233](https://github.com/user-attachments/assets/27151c17-dc10-45ed-9792-611ea9a519f7)
