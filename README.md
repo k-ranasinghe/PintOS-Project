@@ -5,7 +5,8 @@ operating system with all the basic functionalities of an OS developed by Stanfo
 <br>
 This was an academic project done as part of the Semester 3 Operating Systems Module. As part of the 
 project Threads, User Programs were implemented in this environment. Also Semaphores and Locks were 
-implemented to handle concurrency issues.
+implemented to handle concurrency issues. Also we got the oportunity to work on the Linux Operating
+System as this project cannot be run on Windows or MacOS.
 <br>
 <br>
 In Lab 1 we implemented an interactive shell as shown below.
