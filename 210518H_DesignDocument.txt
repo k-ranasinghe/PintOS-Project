@@ -1,0 +1,265 @@
+		     +--------------------------+
+       	     |		    CS 2043		    |
+		     | PROJECT 2: USER PROGRAMS	|
+		     | 	   DESIGN DOCUMENT     	|
+		     +--------------------------+
+
+
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+			   ARGUMENT PASSING
+			   ================
+
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+>> none
+
+---- ALGORITHMS ----
+
+>> A2: Briefly describe how you implemented argument parsing.  How do
+>> you arrange for the elements of argv[] to be in the right order?
+>> How do you avoid overflowing the stack page?
+
+>> The strtok_r() function is used to parse the file_name into prog_name (the executable name) and args (the arguments).
+>> prog_name and args are passed separately to the thread_create function as arguments. When a new thread is created, these values are used to set up its stack. In start_process function these arguments are pushed onto the stack in the right order.
+>> A stack page (PGSIZE), a separate memory page, is assigned to a newly launched thread. To prevent writing past the designated stack page, the stack activities are reviewed.
+
+---- RATIONALE ----
+
+>> A3: Why does Pintos implement strtok_r() but not strtok()?
+
+>> For thread safety and reentrancy, Pintos uses strtok_r() rather than strtok(). Since strtok() makes use of an internal static pointer, it is hazardous to use in multithreaded contexts and is not reentrant. Thread safety is ensured by strtok_r(), which permits several threads to use the function concurrently without interfering with each other's parsing.
+
+
+>> A4: In Pintos, the kernel separates commands into a executable name
+>> and arguments.  In Unix-like systems, the shell does this
+>> separation.  Identify at least two advantages of the Unix approach.
+
+>> Programming can be modularized by separating the arguments from the executable name. Programmes have the ability to interact through standardised interfaces and may be independently designed and tested, making integration and maintenance simpler.
+>> Flexibility is another advantage. A single executable can have many arguments passed to it by users, allowing it to do different tasks depending on the input. Because of its versatility, users can alter programme behaviour without changing the executable itself, which streamlines the user interface.
+
+
+
+			     SYSTEM CALLS
+			     ============
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+>> struct file_descriptor {
+>>    struct file *file;  
+>>    int fd;             
+>> };
+>> represents a process's file descriptor entry, containing details about a file that has been opened and the file descriptor number that goes with it.
+
+>> struct file_descriptor file_descriptors[MAX_FILES];
+>> The array serves as a mapping from opened files to file descriptor numbers.
+
+>> B2: Describe how file descriptors are associated with open files.
+>> Are file descriptors unique within the entire OS or just within a
+>> single process?
+
+>> The struct file_descriptor data structure links file descriptors to open files. A pointer to the opened file and its associated file descriptor number (fd) are contained in each element of the array of struct file_descriptor elements (file_descriptors) that each process possesses. File descriptors are distinct within a process, but not across the operating system. To avoid conflicts with file descriptors in other processes, each process keeps track of its own unique set of file descriptors. The process associates the file descriptor with the opened file when a file is opened by creating a new entry in the file_descriptors array. Processes can access files via their corresponding file descriptors thanks to this relationship.
+
+
+---- ALGORITHMS ----
+
+>> B3: Describe your code for reading and writing user data from the
+>> kernel.
+
+>> Reading
+>> read system call is invoked, the syscall_handler function in syscall.c processes the request.
+>>  The file descriptor passed as an argument is used to retrieve the corresponding struct file pointer from the process's file_descriptors array using the process_get_file helper function.
+>> If STDIN_FILENO (standard input) is the file descriptor, then input_getc() is used to allocate a kernel buffer. The file_read_at method allocates and initialises the kernel buffer for other file descriptors.
+>> For STDIN_FILENO, characters are read one by one using input_getc() and copied to the kernel buffer. For other file descriptors, the file_read_at function is used.
+>> After reading data into the kernel buffer, the data is copied from the kernel buffer to the user buffer specified by the user process.
+
+>> Writing
+>> write system call is invoked, the syscall_handler function in syscall.c processes the request.
+>> The file descriptor passed as an argument is used to retrieve the corresponding struct file pointer from the process's file_descriptors array using the process_get_file helper function.
+>> The user buffer is validated to ensure that it is a valid user address using the is_user_vaddr function from threads/vaddr.h.
+>> A kernel buffer is allocated and initialized with the user data using strncpy_user (not shown in the provided code) for string data or memcpy_user for binary data.
+>> For STDOUT_FILENO, the kernel buffer is directly written to the console using putbuf. For other file descriptors, the file_write_at function is used.
+>> After writing data from the kernel buffer, the data is copied back to the user buffer specified by the user process. 
+
+>> B4: Suppose a system call causes a full page (4,096 bytes) of data
+>> to be copied from user space into the kernel.  What is the least
+>> and the greatest possible number of inspections of the page table
+>> (e.g. calls to pagedir_get_page()) that might result?  What about
+>> for a system call that only copies 2 bytes of data?  Is there room
+>> for improvement in these numbers, and how much?
+
+>> 4,096 bytes
+>> If the entire 4,096 bytes are contiguous in the user space only one inspection of the page table is needed to map the entire page into the kernel space.
+>>  If the 4,096 bytes are scattered across multiple non-contiguous pages in the user space, it would require multiple inspections, potentially up to 4,096. 
+
+>> 2 bytes
+>> If the 2 bytes are within the same page, only one inspection of the page table is required.
+>> If the 2 bytes are located in different non-contiguous pages, two inspections would be needed.
+
+>> improvements
+>> One optimization technique is to use bulk copying mechanisms, such as memcpy or strncpy, which can copy data in larger volumes rather than byte by byte. This reduces the number of inspections significantly.
+>> Employing efficient memory allocation strategies to ensure that contiguous blocks of memory are used whenever possible can minimize the number of page table inspections.
+
+>> B5: Briefly describe your implementation of the "wait" system call
+>> and how it interacts with process termination.
+
+>> When a parent process calls the wait() system call, it iterates over its list of child processes to find the child with the specified PID.
+>> Once the parent process has located the relevant child process, it waits using the load_sema synchronisation semaphore. The start_process() function of the child process first downs this semaphore, which is then raised after the child has finished loading and initialising.
+>> The child process increases the load_sema and modifies its exit_status when it ends (either by executing exit() or as a result of an error). At this moment, the parent process will awaken if it is waiting for this child.
+>> When the child process ends, the waiting parent process starts up again. After then, the parent can carry on with the execution of the child by retrieving its exit status, which was set during its termination.
+>> In order to stop memory leaks, the parent process deletes the child process from its list of child processes after obtaining the child's exit status and releases the child_process structure, which contains related memory resources.
+
+
+>> B6: Any access to user program memory at a user-specified address
+>> can fail due to a bad pointer value.  Such accesses must cause the
+>> process to be terminated.  System calls are fraught with such
+>> accesses, e.g. a "write" system call requires reading the system
+>> call number from the user stack, then each of the call's three
+>> arguments, then an arbitrary amount of user memory, and any of
+>> these can fail at any point.  This poses a design and
+>> error-handling problem: how do you best avoid obscuring the primary
+>> function of code in a morass of error-handling?  Furthermore, when
+>> an error is detected, how do you ensure that all temporarily
+>> allocated resources (locks, buffers, etc.) are freed?  In a few
+>> paragraphs, describe the strategy or strategies you adopted for
+>> managing these issues.  Give an example.
+
+>> Using centralised and consistent error-checking methods is one technique. For instance, system call implementations can use operating system functions or macros to confirm the legitimacy of user pointers before accessing any user-supplied memory. To make sure that only legitimate pointers are dereferenced, these routines can take care of the tests for null pointers, unmapped virtual memory, and invalid kernel addresses.
+>> error handling
+>>  Before accessing user memory, validate all user pointers. If any pointer is invalid, immediately terminate the process to prevent further unsafe operations.
+>> Obtain the locks and buffers that are required if the user pointers are valid. Make sure that the resource allocations are made in a way that makes error correction simple in the event that it arises.
+>> Once the resources are acquired, carry out the necessary procedures. If any more mistakes arise during this phase, take urgent action and release any resources that were obtained during this phase.
+>> Proceed with a cleanup procedure that releases all acquired resources if an error is found at any stage. Resource leaks can be avoided by doing this with the use of cleanup functions or macros, which guarantee that each resource is released correctly.
+>> In the case that an error arises that is not manageable with grace, stop the operation right away to avoid more dangerous execution.
+
+
+
+---- SYNCHRONIZATION ----
+
+>> B7: The "exec" system call returns -1 if loading the new executable
+>> fails, so it cannot return before the new executable has completed
+>> loading.  How does your code ensure this?  How is the load
+>> success/failure status passed back to the thread that calls "exec"?
+
+>> A semaphore load_sema linked to the child process is initialised with a value of 0, signifying that the child process has not yet been loaded, when the exec system call creates a child process.
+>> Upon creation, the child process begins loading the new executable. The process_execute() method and the functions it calls (like start_process()) use a variety of synchronisation techniques to make sure that the loading process doesn't begin until the new executable has finished loading completely into memory.
+>> Following a call to process_execute(), the parent process simultaneously makes an attempt to obtain the load_sema semaphore linked to the child process. The parent process will be blocked while it waits for the semaphore to come up because semaphore was initialised to 0.
+>> The child process "upping" the load_sema semaphore lets the parent process know that the loading of the new executable was successful. In the event that loading is unsuccessful, the parent process is still stalled and the child process does not signal the semaphore. The exec system call will return -1 to indicate a failure in the event of one.
+
+
+>> B8: Consider parent process P with child process C.  How do you
+>> ensure proper synchronization and avoid race conditions when P
+>> calls wait(C) before C exits?  After C exits?  How do you ensure
+>> that all resources are freed in each case?  How about when P
+>> terminates without waiting, before C exits?  After C exits?  Are
+>> there any special cases?
+
+>> Case 1: Parent calls wait(C) before C exits
+>> When a child process C is created, a semaphore associated with it is initialized to 0. When C exits, it "ups" this semaphore, indicating that it has exited.
+>> When the parent process P calls wait(C), it attempts to down the load_sema semaphore associated with C. If C has not yet exited, this operation blocks the parent P until C exits.
+After C quits, it makes sure that all resources are properly cleaned up, which includes signalling the load_sema semaphore after freeing up allocated memory and shutting open files. P can resume executing after the semaphore is up, signifying that C has left.
+
+>> Case 2: Parent calls wait(C) after C exits
+>> Similar to Case 1, the load_sema semaphore is used to synchronize between P and C.
+>> If P calls wait(C) after C has already exited, the semaphore check immediately passes, and P does not block. P can then retrieve the exit status of C without waiting.
+>> If P has already ended, C still needs to make sure everything is cleaned up properly. To prevent leaks, resources like as allocated memory and open files must be closed before C terminates.
+
+>> Case 3: Parent terminates without waiting, before C exits
+>> In this situation, semaphores are insufficient on their own. To keep track of its child processes, the parent keeps a data structure, which is typically a list of them. A flag indicating whether the process has exited and a semaphore are included in every child process structure.
+>> When P ends abruptly, it doesn't explicitly clean up the child resources. But the kernel makes sure that all of P's resources—including its child processes—are cleared away when P exits. Setting the exit status and signalling the semaphores of P's child processes are part of this cleanup.
+
+>> Case 4: Parent terminates without waiting, after C exits
+>> Similar to Case 3, a combination of semaphores and data structures is used.
+>> The kernel makes sure that C's resources are released when P ends abruptly and C has already left. In order to prevent any possible waiting threads, the child process structures are released and the semaphores are signalled.
+
+>> Special Cases
+>> In the event that a child process ends before the parent calls wait(C), the parent will need to acquire the exit status from somewhere at a later time. The data structure of the child process is frequently where this information is kept.
+>> The child processes become orphaned if the parent process ends without expressly waiting for them. In order to prevent resource leaks, the kernel should make sure that the init process adopts these orphaned processes. In the end, this process will wait for them.
+
+
+---- RATIONALE ----
+
+>> B9: Why did you choose to implement access to user memory from the
+>> kernel in the way that you did?
+
+>> Safety and Reliability. A system call that finds an incorrect pointer while it's running ends the process right away. This guarantees that any malicious or mistaken attempts to access memory regions that are not authorised will end with the offending process being terminated. System security is improved by this stringent strategy.
+>> Error Handling. During system call execution, the kernel verifies user pointers and arguments as soon as it can. Early error detection allows the system to stop potentially dangerous or incorrect processes from happening.
+>> Resource cleanup. All temporarily assigned resources, including locks, buffers, and semaphores, are immediately freed in the event of a error. By doing this, memory leaks are prevented and system integrity is maintained. No resources are exposed.
+>> Performance Optimization. To reduce the number of page table inspections, optimisations are made to system calls that involve reading or writing significant amounts of user memory. For example, reducing the number of page table inspections can be achieved by buffering data in kernel space prior to bulk transfers.
+
+
+>> B10: What advantages or disadvantages can you see to your design
+>> for file descriptors?
+
+>> Advantages
+>> Pintos' file descriptor design is comparatively straightforward, which facilitates comprehension and upkeep. Because each process has a simple array of file descriptors, the implementation is concise and easy to understand.
+>> The array's size is the only constraint on the design, which permits an infinite number of file descriptors for each process. Scalability like this is necessary to support processes with different I/O requirements.
+>> Because file descriptors are implemented as arrays, open files can be quickly accessed by their file descriptor number. It is more efficient to execute file operations with this direct access.
+
+>> Disadvantages
+>> File paths and file modes are just two examples of the types of information that are not stored in the basic file descriptor implementation. In situations where comprehensive file information is required without the need for further file system queries, this restriction could be a drawback.
+>> Basic file I/O operations are supported by the design primarily. In this basic implementation, more sophisticated activities like file locking or asynchronous I/O are not directly supported.
+>> It's possible that the basic implementation lacks sophisticated error handling features. When file operations go wrong, the user may receive generic error messages, which makes it difficult to identify specific problems.
+>> Security checks are not included in the implementation of the basic file descriptor. There are no safeguards, for instance, to make sure a process doesn't access files it isn't authorised to access or go over its file descriptor limit.
+
+
+>> B11: The default tid_t to pid_t mapping is the identity mapping.
+>> If you changed it, what advantages are there to your approach?
+
+>> The system might establish a discrete division between threads and processes by dividing pid_t from tid_t. This could give developers and consumers a more abstract and user-friendly interface, improving the understandability of the source.
+>> Distinct identities may help with reporting and error management. More accurate identification of errors pertaining to processes and threads would facilitate debugging and problem solving for developers.
+>> Because a distinct mapping gives processes a unique identification even when the threads inside them terminate, it may improve security. Particularly in multi-threaded systems, this uniqueness may be essential for resource tracking and security-related tasks.
+>> A more precise degree of control over resource allocation, deallocation, and tracking could be made possible by assigning distinct pid_t values to different resources allotted to processes. This division may be crucial in systems that have intricate needs for resource management.
+>> With a separate pid_t, processes could be managed more efficiently. This separation would enable cleaner process management, allowing processes to be tracked, monitored, and controlled independently of the threads within them.
+
+
+			   SURVEY QUESTIONS
+			   ================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+>> AS HARD AS IT CAN GET. It just doesn't make sense to give an assignment like this without giving any insight into pintos beforehand. This took forever to get done. Just saying is not the only module we are doing this semester.
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+>> no.
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+>> Yes please provide hints in the future and give gradual assignments rather than handing over something of this scale out of nowhere. 
+>> There was no guidance what so ever provided throughout the semester. We did not have a single lab session.
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters or the remaining projects?
+
+>> Have more lab sessions in the future. also rather than giving this as one assignment, break it down to few gradual assignments and provide some guidance as well.
+
+>> Any other comments?
+
+>> :(
