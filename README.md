@@ -1,15 +1,18 @@
 # Overview
-[Pintos](http://pintos-os.org) is a teaching operating system for x86 architectures. It is a small
+Pintos is a teaching operating system for x86 architectures. It is a small
 operating system with all the basic functionalities of an OS developed by Stanford University.
+<br>
 <br>
 This was an academic project done as part of the Semester 3 Operating Systems Module. As part of the 
 project Threads, User Programs were implemented in this environment. Also Semaphores and Locks were 
 implemented to handle concurrency issues.
 <br>
+<br>
 In Lab 1 we implemented an interactive shell as shown below.
 <br>
 <br>
 ![image](https://github.com/user-attachments/assets/1e3546d2-70be-44af-b23c-16af361c4af8)
+<br>
 <br>
 ![image](https://github.com/user-attachments/assets/68e8591e-dd38-4c24-b36b-800f6547e25c)
 <br>
