@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "serial.h": "c",
+        "process.h": "c",
+        "syscall.h": "c",
+        "thread.h": "c"
+    },
+    "C_Cpp.dimInactiveRegions": false,
+    "C_Cpp.errorSquiggles": "disabled"
+}

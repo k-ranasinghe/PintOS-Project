@@ -3,7 +3,9 @@
 
 #include <debug.h>
 #include <list.h>
+#include "threads/synch.h"
 #include <stdint.h>
+#include "userprog/syscall.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -92,6 +94,22 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    struct list_elem blockedelem; /* List element for blocked threads list */
+    struct list_elem child_elem;       // list element for child list of parent
+    int64_t sleep_ticks; /*Time to wake if sleeping*/
+
+    struct list child_list;            // maintain list of children
+    struct thread *parent_t;           // pointer to parent thread
+    struct semaphore init_sema;        // semaphore for parent to wait for child to init
+    struct semaphore exit_sema;        // semaphore for child to wait for parent to get exit status
+    struct semaphore pre_exit_sema;    // semaphore for parent to wait for child to start exiting and set exit status
+    bool status_load_success;          // indicate whether process loaded successfully
+    int exit_status;                   // exit status for parents who wait to see
+
+    int next_fd;                       // next file descriptor
+    struct list open_fd_list;          // list of open file descriptors held by process
+    struct file *process_file;         // The file which contains the code for the process
+
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -100,6 +118,17 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+		// for sys calls
+    struct list file_list;      // list of files
+    int fd;                     // file descriptor
+    
+    //struct list child_list;     // list of child processes
+    tid_t parent;               // id of the parent
+    
+    struct child_process* cp;   // point to child process
+    struct file* executable;    // use for denying writes to executables
+    struct list lock_list;      // use to keep track of locks the thread holds
   };
 
 /* If false (default), use round-robin scheduler.
@@ -118,6 +147,8 @@ tid_t thread_create (const char *name, int priority, thread_func *, void *);
 
 void thread_block (void);
 void thread_unblock (struct thread *);
+void thread_sleep (int64_t);
+void thread_wake(int64_t);
 
 struct thread *thread_current (void);
 tid_t thread_tid (void);

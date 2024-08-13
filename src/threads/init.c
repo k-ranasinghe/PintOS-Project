@@ -134,6 +134,57 @@ pintos_init (void)
     run_actions (argv);
   } else {
     // TODO: no command line passed to kernel. Run interactively 
+    while (1) {
+    	printf("CS2042> ");
+    	uint8_t key;
+    	char word[15];
+    	int i = 0;
+
+    	while (1) {
+  		key = input_getc ();
+  		printf("%c",key);
+  		if (key == '\r') {
+    			break;
+  		}
+
+  		word[i] = key;
+  		i++;
+
+  		if (i == sizeof(word) - 1) {
+    			break;
+  		}
+
+    	}
+    	printf("\n");
+	word[i] = '\0';
+    	if (strcmp(word, "whoami") == 0) {
+  		puts("Name: Kumudh Ranasinghe  Index no.: 210518H");
+    	} 
+    	else if (strcmp(word, "shutdown") == 0) {
+  		shutdown_power_off();
+    	}
+    	else if (strcmp(word, "time") == 0) {
+		int time = timer_ticks() / 100;
+		printf("Time since elapsed: %d seconds\n", time);
+    	}
+    	else if (strcmp(word, "ram") == 0) {
+  		printf ("%'"PRIu32" kB of RAM available\n",
+          	init_ram_pages * PGSIZE / 1024);
+    	}   
+    	else if (strcmp(word, "thread") == 0) {
+		thread_print_stats();
+    	}
+    	else if (strcmp(word, "priority") == 0) {
+		printf("Thread name: %s, Thread priority: %d\n", thread_name(), thread_get_priority()); 
+    	}
+    	else if (strcmp(word, "exit") == 0) {
+        	puts("Exiting interactive shell...Bye!");
+  		break;
+    	} else {
+  		puts("Invalid Command. Retry");
+    	}
+    	
+    }
   }
 
   /* Finish up. */
