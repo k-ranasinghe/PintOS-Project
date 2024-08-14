@@ -3,7 +3,7 @@ Pintos is a teaching operating system for x86 architectures. It is a small
 operating system with all the basic functionalities of an OS which was developed by Stanford University.
 <br>
 <br>
-This was an academic project done as part of the Semester 3 Operating Systems Module. As part of the 
+This is an academic project done as part of the Semester 3 Operating Systems Module. As part of the 
 project Threads, User Programs were implemented in this environment. Also Semaphores and Locks were 
 implemented to handle concurrency issues. Also we got the oportunity to work on the Linux Operating
 System as this project cannot be run on Windows or MacOS.
